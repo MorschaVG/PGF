@@ -26,3 +26,5 @@ elif eerste_keus ==3 :
     print("Wow. Echt? Schreeuwen in een koffietent omdat je niet als een koning behandeld wordt? Damn.\n"
           "De toegang wordt je (voor eeuwig) ontzegt en ook je stempelkaart waarop je nog 1 stempel verwijderd was\n"
           "van een gratis flat white haver wordt per direct gevorderd. Game over.")
+
+    print ("Einde.")
