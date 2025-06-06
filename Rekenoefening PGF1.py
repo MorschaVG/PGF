@@ -43,10 +43,12 @@
 #rest = getal5 % getal6
 #print(f"De rest van {getal5} / {getal6} is {rest}")
 
-getal7 = int(input("Voer getal 1 in: "))
-getal8 = int(input("Voer getal 2 in "))
-resultaat = getal7 / getal8
-print(f"{getal7} / {getal8} = {resultaat} ")
+# getal7 = int(input("Voer getal 1 in: "))
+# getal8 = int(input("Voer getal 2 in "))
+# resultaat = getal7 / getal8
+# print(f"{getal7} / {getal8} = {resultaat} ")
+
+
 
 
 
