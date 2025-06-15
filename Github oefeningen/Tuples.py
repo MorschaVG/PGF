@@ -26,7 +26,7 @@
 # --------------------------------------------------------------------------------------------
 
 
-# Maak een tuple met een naam en een leeftijd
+# Maak een tuple met een naam en een leeftijd=
 
 
 # Pak de gegevens uit de tuple en sla ze op in afzonderlijke variabelen (Wat gebeurt er als je de variabelen in de verkeerde volgorde definieert?)
