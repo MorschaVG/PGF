@@ -107,5 +107,7 @@
 #
 # # Eerst drukken we de eerste twee getallen af
 #
+# print(f"{a}, {b}")
 
 # Vervolgens berekenen we de volgende getallen en drukken ze af
+
