@@ -5,7 +5,7 @@ from idlelib.run import manage_socket
 #Merel loopt door de gibraltarstraat terwijl de zoete klanken van artiest uit haar airpods komen.
 #Ze kan niet wachten tot ze Morscha weer ziet. Vandaag gaan ze samen videogames spelen en spaghetti eten.
 
-#TODO: Hier moet nog even gekeken worden naar de opties voor het formatteren van de hobby input
+#DONE: Hier moet nog even gekeken worden naar de opties voor het formatteren van de hobby input
 #dit is een test van de Pycharm to-do functie
 
 naam = input("Wat is je naam?")
