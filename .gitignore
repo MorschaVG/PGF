@@ -1,5 +1,8 @@
 .venv/
 .DS_Store
 .idea/
+# Python temp files
 __pycache__/
+*.py[cod]
+*$py.class
 
