@@ -29,7 +29,7 @@
 #  DONE: Maak een dictionary voor Groep 1 waarin de boeken de sleutels zijn en de waarden het aantal keren dat elk boek is geleend.
 #  DONE: Maak een soortgelijke dictionary voor Groep 2.
 # 5. Meest geleende boek:
- TODO: Gebruik de dictionary van vraag 4 om te bepalen welk boek het meest is geleend door Groep 1 en welk boek door Groep 2.
+#  DONE: Gebruik de dictionary van vraag 4 om te bepalen welk boek het meest is geleend door Groep 1 en welk boek door Groep 2.
 
 # Tips:
 # • Gebruik de functie set() om een set te maken.
