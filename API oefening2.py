@@ -8,10 +8,10 @@ load_dotenv()
 
 
 
-def get_weather_data(lat, lon, app_id):
-    url = (f"https://api.openweathermap.org/data/3.0/onecall")
+def get_weather_data(lat, lon, units, app_id):
+    url = (f"https://api.openweathermap.org/data/2.5/weather")
     params ={"lat":lat, "lon": lon,
-             "appid":app_id}
+             "appid":app_id, "units": units}
 
 
     response = requests.get(url, params=params)
@@ -34,18 +34,19 @@ def display_weather_info(weather_data):
 def main():
     lat = input("Enter latitude: ").strip().lower()
     lon = input("Enter longitude: ").strip().lower()
+    units = "metric"
 
     while not lat:
         print("Latitude cannot be empty")
     app_id = os.getenv("open_weather_key")
-    data = get_weather_data(lat, lon, app_id)
+    data = get_weather_data(lat, lon, units, app_id)
 
     display_weather_info(data)
 
 main()
 
-
-
+# 52.377956
+# 4.897070
 
 
 
