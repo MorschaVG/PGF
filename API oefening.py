@@ -1,21 +1,53 @@
 import requests
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
-def get_weather_data(city_name, api_key):
+
+
+
+def get_weather_data(lat, lon, app_id):
+    url = (f"https://api.openweathermap.org/data/3.0/onecall")
+    params ={"lat":lat, "lon": lon,
+             "appid":app_id}
+
+
     response = requests.get(url)
 
     if response.status_code == 200:
-        print(response.json())
+        return response.json()
     else:
         print(f"Er is iets mis gegaan. Status code: {response.status_code}")
 
+def display_weather_info(weather_data):
+    city = weather_data['name']
+    temp = weather_data['main']['temp']
+    description = weather_data['weather'][0]['description']
 
-# Juiste datumnotatie (als string), en appid als string (tussen haakjes).
-date = "2025-07-14"
-lat = 52.2222
-lon = 4.5337
-appid = "51dcab088e0a7ddf16f7c1aa9fc041e5"
+    print(f"Weather in {city}:")
+    print(f"Temperature: {temp}")
+    print(f"Description: {description.capitalize()}")
 
-url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={appid}"
 
-r
+def main():
+    lat = input("Enter latitude: ").strip().lower()
+    lon = input("Enter longitude: ").strip().lower()
+
+    while not lat:
+        print("Latitude cannot be empty")
+    app_id = os.getenv("open_weather_key")
+    data = get_weather_data(lat, lon, app_id)
+
+    display_weather_info(data)
+
+main()
+
+
+
+
+
+
+
+
