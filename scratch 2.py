@@ -86,13 +86,15 @@ def check_boekversie(title, movie_writers, filmjaar):
         for boek in docs[:10]:  # check eerste 10 resultaten
             boek_auteurs = boek.get("author_name", [])
             publicatiejaar = boek.get("first_publish_year", 9999)
-            genres = boek.get("subject", [])
 
-            auteur_match = any(auteur in movie_writers for auteur in boek_auteurs)
             ouder_dan_film = publicatiejaar < filmjaar
-            geen_adaptatie_genre = not any("film adaptation" in g.lower() for g in genres or [])
+            auteur_match = any(
+                any(writer.lower() in auteur.lower() or auteur.lower() in writer.lower()
+                    for writer in movie_writers)
+                for auteur in boek_auteurs
+            )
 
-            if auteur_match and ouder_dan_film and geen_adaptatie_genre:
+            if ouder_dan_film and auteur_match:
                 return boek
 
         return None
@@ -100,35 +102,32 @@ def check_boekversie(title, movie_writers, filmjaar):
     else:
         print(f"Fout bij checken van gegevens: {response.status_code}")
         return None
-
 def get_google_books_rating(title):
-    """Haalt de gemiddelde rating en het aantal reviews op van Google Books API."""
     url = "https://www.googleapis.com/books/v1/volumes"
     params = {
         "q": title,
-        "maxResults": 1,
+        "maxResults": 5,
     }
 
     response = requests.get(url, params=params)
     if response.status_code == 200:
         data = response.json()
         items = data.get("items", [])
-        if items:
-            volume_info = items[0].get("volumeInfo", {})
-            rating = volume_info.get("averageRating")  # rating uit 5
+        for item in items:
+            volume_info = item.get("volumeInfo", {})
+            rating = volume_info.get("averageRating")
             ratings_count = volume_info.get("ratingsCount", 0)
-            return rating, ratings_count
+            if rating:
+                return rating, ratings_count
     return None, 0
 
 def vergelijk_boek_en_film(film_data, boek_data):
     film_rating = float(film_data.get("imdbRating", 0))
     film_titel = film_data.get("Title")
-    film_jaar = int(film_data.get("Year", 0))
 
-    boek_key = boek_data.get("key")  # bv. "/works/OL123W"
+    boek_key = boek_data.get("key")
     boek_rating = None
 
-    # Probeer eerst OpenLibrary rating
     if boek_key:
         ratings_url = f"https://openlibrary.org{boek_key}/ratings.json"
         ratings_response = requests.get(ratings_url)
@@ -136,24 +135,22 @@ def vergelijk_boek_en_film(film_data, boek_data):
             ratings_data = ratings_response.json()
             boek_rating = ratings_data.get("average")
 
-    # Fallback naar Google Books rating als OpenLibrary rating ontbreekt
+
     if not boek_rating:
-        google_rating, count = get_google_books_rating(film_titel)
+        boek_title = boek_data.get("title") or film_titel
+        google_rating, count = get_google_books_rating(boek_title)
         if google_rating:
-            # Google Books rating is uit 5, film uit 10, dus opschalen naar schaal 5 voor vergelijk
             boek_rating = google_rating
-            print(f"(Fallback) Boek rating via Google Books: {google_rating} (gebaseerd op {count} reviews)")
         else:
-            print("Er is geen beoordeling voor het boek beschikbaar.")
+            print("Er is geen beoordeling voor het boek beschikbaar. Ga er maar vanuit dat het boek beter is..")
             return
 
-    # Vergelijk scores (film op schaal 10, boek rating op schaal 5)
     if film_rating > boek_rating * 2:
-        print("Sorry, de film is beter dan het boek.")
+        print("\nSorry, de film is beter dan het boek.")
     elif film_rating < boek_rating * 2:
-        print("Ja, het boek is beter dan de film. Je kan nu díe persoon zijn op een feestje.")
+        print("\nJa, het boek is beter dan de film. Je kan nu díe persoon zijn op een feestje.")
     else:
-        print("Het boek en de film zijn even goed. Laat het los.")
+        print("\nHet boek en de film zijn even goed. Laat het los.")
 def toon_boekinfo(boek):
     titel = boek.get("title") or boek.get("title_suggest", "Onbekende titel")
     auteurs = ", ".join(boek.get("author_name", ["Onbekende auteur"]))
@@ -229,11 +226,11 @@ def film_submenu():
             boek_data = check_boekversie(title, movie_writers, filmjaar)
             if boek_data:
                 toon_boekinfo(boek_data)
-                wil_vergelijken = input("Wil je weten of het boek beter is dan de film? (j/n): ").strip().lower()
+                wil_vergelijken = input("\nWil je weten of het boek beter is dan de film? (j/n): ").strip().lower()
                 if wil_vergelijken == "j":
                     vergelijk_boek_en_film(data, boek_data)
             else:
-                print("Deze film is niet gebaseerd op een boek.")
+                print("Deze film is niet gebaseerd op een boek. (of we kunnen het boek niet vinden)")
 
         elif keuze == "5":
             break
