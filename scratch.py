@@ -25,11 +25,15 @@ def get_movie_data(title):
 
 def toon_jaartal(data):
     jaar = data["Year"]
-    print(f"{data['Title']} kwam uit in {jaar}.")
+    print(f"\n{data['Title']} kwam uit in {jaar}.")
 
-    keuze = input(f"Wil je topfilms uit {jaar} bekijken? (j/n): ").strip().lower()
+    keuze = input(f"\nWil je topfilms uit {jaar} bekijken? (j/n): ").strip().lower()
     if keuze == "j":
-        toon_topfilms_uit_jaar(int(jaar))
+        topfilms_submenu(int(jaar))
+        return True  # << Signaal aan film_submenu: ik heb een nieuwe film gestart
+    return False
+
+
 
 
 def toon_regisseur(data):
@@ -86,13 +90,15 @@ def check_boekversie(title, movie_writers, filmjaar):
         for boek in docs[:10]:  # check eerste 10 resultaten
             boek_auteurs = boek.get("author_name", [])
             publicatiejaar = boek.get("first_publish_year", 9999)
-            genres = boek.get("subject", [])
 
-            auteur_match = any(auteur in movie_writers for auteur in boek_auteurs)
             ouder_dan_film = publicatiejaar < filmjaar
-            geen_adaptatie_genre = not any("film adaptation" in g.lower() for g in genres or [])
+            auteur_match = any(
+                any(writer.lower() in auteur.lower() or auteur.lower() in writer.lower()
+                    for writer in movie_writers)
+                for auteur in boek_auteurs
+            )
 
-            if auteur_match and ouder_dan_film and geen_adaptatie_genre:
+            if ouder_dan_film and auteur_match:
                 return boek
 
         return None
@@ -100,35 +106,32 @@ def check_boekversie(title, movie_writers, filmjaar):
     else:
         print(f"Fout bij checken van gegevens: {response.status_code}")
         return None
-
 def get_google_books_rating(title):
-    """Haalt de gemiddelde rating en het aantal reviews op van Google Books API."""
     url = "https://www.googleapis.com/books/v1/volumes"
     params = {
         "q": title,
-        "maxResults": 1,
+        "maxResults": 5,
     }
 
     response = requests.get(url, params=params)
     if response.status_code == 200:
         data = response.json()
         items = data.get("items", [])
-        if items:
-            volume_info = items[0].get("volumeInfo", {})
-            rating = volume_info.get("averageRating")  # rating uit 5
+        for item in items:
+            volume_info = item.get("volumeInfo", {})
+            rating = volume_info.get("averageRating")
             ratings_count = volume_info.get("ratingsCount", 0)
-            return rating, ratings_count
+            if rating:
+                return rating, ratings_count
     return None, 0
 
 def vergelijk_boek_en_film(film_data, boek_data):
     film_rating = float(film_data.get("imdbRating", 0))
     film_titel = film_data.get("Title")
-    film_jaar = int(film_data.get("Year", 0))
 
-    boek_key = boek_data.get("key")  # bv. "/works/OL123W"
+    boek_key = boek_data.get("key")
     boek_rating = None
 
-    # Probeer eerst OpenLibrary rating
     if boek_key:
         ratings_url = f"https://openlibrary.org{boek_key}/ratings.json"
         ratings_response = requests.get(ratings_url)
@@ -136,24 +139,22 @@ def vergelijk_boek_en_film(film_data, boek_data):
             ratings_data = ratings_response.json()
             boek_rating = ratings_data.get("average")
 
-    # Fallback naar Google Books rating als OpenLibrary rating ontbreekt
+
     if not boek_rating:
-        google_rating, count = get_google_books_rating(film_titel)
+        boek_title = boek_data.get("title") or film_titel
+        google_rating, count = get_google_books_rating(boek_title)
         if google_rating:
-            # Google Books rating is uit 5, film uit 10, dus opschalen naar schaal 5 voor vergelijk
             boek_rating = google_rating
-            print(f"(Fallback) Boek rating via Google Books: {google_rating} (gebaseerd op {count} reviews)")
         else:
-            print("Er is geen beoordeling voor het boek beschikbaar.")
+            print("Er is geen beoordeling voor het boek beschikbaar. Ga er maar vanuit dat het boek beter is..")
             return
 
-    # Vergelijk scores (film op schaal 10, boek rating op schaal 5)
     if film_rating > boek_rating * 2:
-        print("Sorry, de film is beter dan het boek.")
+        print("\nSorry, de film is beter dan het boek.")
     elif film_rating < boek_rating * 2:
-        print("Ja, het boek is beter dan de film. Je kan nu díe persoon zijn op een feestje.")
+        print("\nJa, het boek is beter dan de film. Je kan nu díe persoon zijn op een feestje.")
     else:
-        print("Het boek en de film zijn even goed. Laat het los.")
+        print("\nHet boek en de film zijn even goed. Laat het los.")
 def toon_boekinfo(boek):
     titel = boek.get("title") or boek.get("title_suggest", "Onbekende titel")
     auteurs = ", ".join(boek.get("author_name", ["Onbekende auteur"]))
@@ -166,45 +167,64 @@ def toon_topfilms_uit_jaar(jaar):
     params = {
         "api_key": api_key,
         "primary_release_year": jaar,
-        "sort_by": "popularity.desc",  # Sorteer op populariteit
+        "sort_by": "popularity.desc",
         "language": "nl-NL",
         "page": 1
     }
-
     response = requests.get(url, params=params)
+    response.raise_for_status()
+    films = response.json().get("results", [])
+    return films[:10]  # return top 10
 
-    if response.status_code == 200:
-        data = response.json()
-        films = data.get("results", [])
-        if not films:
-            print(f"Geen films gevonden voor het jaar {jaar}.")
+def topfilms_submenu(jaar):
+    films = toon_topfilms_uit_jaar(jaar)
+    if not films:
+        print(f"Geen films gevonden voor {jaar}.")
+        return
+
+    print(f"\nTop films uit {jaar}:")
+    for i, film in enumerate(films, start=1):
+        print(f"{i}. {film['title']}")
+
+    prompt = (
+        "\nKies het nummer van één van deze films als je daar meer over wilt weten\n"
+        "of kies 0 als je terug wilt naar het vorige menu: "
+    )
+    keuze = input(prompt).strip()
+
+    if keuze.isdigit():
+        idx = int(keuze)
+        if idx == 0:
             return
-
-        print(f"\nTop films uit {jaar}:")
-        for film in films[:10]:  # toon de top 10
-            print(f"- {film['title']}")
+        if 1 <= idx <= len(films):
+            return film_submenu(films[idx - 1]['title'])  # << BELANGRIJK: return!
+        else:
+            print("Nummer buiten bereik. Kies 1–10 of 0 om terug te gaan.")
     else:
-        print(f"Fout bij ophalen topfilms: {response.status_code}")
+        print("Voer een geldig cijfer in (0–10).")
 
 
-def film_submenu():
-    title = input("Voer de titel van een film in: ")
+def film_submenu(title=None):
+    if not title:
+        title = input("\nVoer de titel van een film in: ")
     data = get_movie_data(title)
     if not data:
         return
 
     while True:
         print(f"\nWat wil je weten over '{title}'?")
-        print("1. In welk jaar kwam de film uit?")
+        print("\n1. In welk jaar kwam de film uit?")
         print("2. Wie was de regisseur?")
         print("3. Heeft deze film een Oscar gewonnen?")
         print("4. Is deze film gebaseerd op een boek?")
         print("5. Terug naar hoofdmenu")
 
-        keuze = input(">> ")
+        keuze = input("\nMaak je keuze: ")
 
         if keuze == "1":
-            toon_jaartal(data)
+            gestopt = toon_jaartal(data)
+            if gestopt:
+                return
         elif keuze == "2":
             toon_regisseur(data)
         elif keuze == "3":
@@ -229,14 +249,14 @@ def film_submenu():
             boek_data = check_boekversie(title, movie_writers, filmjaar)
             if boek_data:
                 toon_boekinfo(boek_data)
-                wil_vergelijken = input("Wil je weten of het boek beter is dan de film? (j/n): ").strip().lower()
+                wil_vergelijken = input("\nWil je weten of het boek beter is dan de film? (j/n): ").strip().lower()
                 if wil_vergelijken == "j":
                     vergelijk_boek_en_film(data, boek_data)
             else:
-                print("Deze film is niet gebaseerd op een boek.")
+                print("Deze film is niet gebaseerd op een boek. (of we kunnen het boek niet vinden)")
 
         elif keuze == "5":
-            break
+            return
         else:
             print("Ongeldige keuze.")
             continue
@@ -244,7 +264,7 @@ def film_submenu():
         # Na uitvoeren van een functie, vraag of de gebruiker verder wil
         vervolg = input("\nWil je nog meer weten over deze film? (j/n): ").strip().lower()
         if vervolg != "j":
-            break
+            return
 
 
 def main_menu():
@@ -257,7 +277,7 @@ def main_menu():
         if keuze == "1":
             film_submenu()
         elif keuze == "2":
-            print("Tot de volgende keer!")
+            print("\nTot de volgende keer!")
             break
         else:
             print("Ongeldige keuze.")
